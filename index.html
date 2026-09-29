@@ -68,7 +68,6 @@ td button{padding:8px 10px;font-size:14px;margin-left:4px}
  <div id="login">
   <div class="lbl">担当者番号</div>
   <div class="disp" id="empDisp"></div>
-  <div class="name" id="empName"></div>
   <div class="pad" data-t="emp"></div>
   <button class="go" id="start" disabled>開始</button>
  </div>
@@ -90,12 +89,9 @@ td button{padding:8px 10px;font-size:14px;margin-left:4px}
 <section id="v-list" class="wrap" hidden>
  <div class="row"><button id="exp">CSVを書き出す</button><button id="clr">全件削除</button></div>
  <div id="sum" class="lbl"></div>
- <div class="tbl"><table><thead><tr><th>時刻</th><th>読取内容</th><th>数量</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>
+ <div class="tbl"><table><thead><tr><th>時刻/番号</th><th>読取内容</th><th>数量</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>
 </section>
 <section id="v-set" class="wrap" hidden>
- <div class="lbl">社員マスター(CSV: 1列目=番号、2列目=氏名)</div>
- <div class="row"><input type="file" id="mf" accept=".csv,.txt,text/csv"></div>
- <div id="mcnt" class="lbl"></div>
  <div class="lbl">オフライン起動の状態</div>
  <div id="swst" class="code">確認中</div>
 </section>
@@ -10209,9 +10205,8 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
 const $=s=>document.querySelector(s);
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){toast('保存できませんでした')}}};
-let master=LS.get('master',{}),recs=LS.get('recs',[]),emp=LS.get('emp',null);
+let recs=LS.get('recs',[]),emp=LS.get('emp',null);
 let empIn='',qty='',code=null,cam=null,camOn=false,view='scan';
-const norm=s=>String(s).trim().replace(/^0+(?=\d)/,'');
 const pad2=n=>String(n).padStart(2,'0');
 const fmt=t=>{const d=new Date(t);return pad2(d.getMonth()+1)+'/'+pad2(d.getDate())+' '+pad2(d.getHours())+':'+pad2(d.getMinutes())};
 let tt;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),2200)}
@@ -10228,11 +10223,7 @@ function press(t,k){
 
 function renderLogin(){
  $('#empDisp').textContent=empIn;
- const n=empIn?master[norm(empIn)]:null,el=$('#empName');
- if(!empIn){el.textContent='';el.className='name'}
- else if(n){el.textContent=n;el.className='name'}
- else{el.textContent=Object.keys(master).length?'未登録の番号です':'設定で社員マスターを取り込んでください';el.className='name ng'}
- $('#start').disabled=!n}
+ $('#start').disabled=empIn.length===0}
 function renderWork(){
  $('#qtyDisp').textContent=qty;
  const c=$('#codeDisp');c.textContent=code||'未読取';c.className='code'+(code?' on':'');
@@ -10240,11 +10231,11 @@ function renderWork(){
  $('#cnt').textContent='今回の登録: '+recs.filter(r=>r.e===emp.no).length+' 件 / 全体: '+recs.length+' 件'}
 function renderTop(){
  const on=!!emp;$('#login').hidden=on;$('#work').hidden=!on;$('#chg').hidden=!on;
- $('#who').textContent=on?emp.no+'  '+emp.name:'';
+ $('#who').textContent=on?emp.no:'';
  if(on)renderWork();else renderLogin()}
 
-$('#start').onclick=()=>{const n=master[norm(empIn)];if(!n)return;
- emp={no:empIn,name:n};LS.set('emp',emp);empIn='';code=null;qty='';renderTop();$('#scan').focus()};
+$('#start').onclick=()=>{if(!empIn)return;
+ emp={no:empIn};LS.set('emp',emp);empIn='';code=null;qty='';renderTop();$('#scan').focus()};
 $('#chg').onclick=()=>{stopCam();camOn=false;$('#camBtn').textContent='カメラで読み取る';
  emp=null;LS.set('emp',null);code=null;qty='';renderTop()};
 
@@ -10254,7 +10245,7 @@ $('#scan').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault()
 $('#reg').onclick=register;
 function register(){
  if(!code||qty==='')return;
- recs.push({t:Date.now(),e:emp.no,n:emp.name,c:code,q:+qty});LS.set('recs',recs);
+ recs.push({t:Date.now(),e:emp.no,c:code,q:+qty});LS.set('recs',recs);
  toast('登録しました: '+code+' × '+(+qty));code=null;qty='';renderWork();
  if(camOn)startCam();else $('#scan').focus()}
 
@@ -10288,7 +10279,7 @@ function renderList(){
  recs.map((r,i)=>[r,i]).reverse().forEach(([r,i])=>{
   const tr=document.createElement('tr');
   tr.innerHTML='<td></td><td></td><td class="q"></td><td></td>';
-  tr.children[0].textContent=fmt(r.t)+' '+r.n;tr.children[1].textContent=r.c;tr.children[2].textContent=r.q;
+  tr.children[0].textContent=fmt(r.t)+' '+r.e;tr.children[1].textContent=r.c;tr.children[2].textContent=r.q;
   const e=document.createElement('button');e.textContent='修正';e.onclick=()=>{
    const v=prompt('数量を入力',r.q);if(v===null)return;
    if(!/^\d{1,6}$/.test(v.trim())){toast('数字だけで入力してください');return}
@@ -10301,34 +10292,27 @@ $('#clr').onclick=()=>{if(recs.length&&confirm('登録済みの '+recs.length+' 
 $('#exp').onclick=()=>{
  if(!recs.length){toast('書き出すデータがありません');return}
  const q=s=>'"'+String(s).replace(/"/g,'""')+'"';
- const rows=[['日時','担当者番号','担当者名','読取内容','数量'].map(q).join(',')];
+ const rows=[['日時','担当者番号','読取内容','数量'].map(q).join(',')];
  recs.forEach(r=>{const d=new Date(r.t);
   const ts=d.getFullYear()+'/'+pad2(d.getMonth()+1)+'/'+pad2(d.getDate())+' '+pad2(d.getHours())+':'+pad2(d.getMinutes())+':'+pad2(d.getSeconds());
-  rows.push([q(ts),q(r.e),q(r.n),q(r.c),r.q].join(','))});
+  rows.push([q(ts),q(r.e),q(r.c),r.q].join(','))});
  const n=new Date(),name='tanaoroshi_'+n.getFullYear()+pad2(n.getMonth()+1)+pad2(n.getDate())+'_'+pad2(n.getHours())+pad2(n.getMinutes())+'.csv';
  const a=document.createElement('a');
  a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.join('\r\n')],{type:'text/csv'}));
- a.download=name;document.body.appendChild(a);a.click();a.remove()};
-
-$('#mf').onchange=async e=>{
- const f=e.target.files[0];if(!f)return;
- const b=await f.arrayBuffer();let t;
- try{t=new TextDecoder('utf-8',{fatal:true}).decode(b)}catch(x){t=new TextDecoder('shift_jis').decode(b)}
- const m={};let n=0;
- t.replace(/^\ufeff/,'').split(/\r?\n/).forEach(l=>{
-  const c=l.split(/[,\t]/).map(s=>s.trim().replace(/^"|"$/g,''));
-  if(c.length>=2&&/^\d+$/.test(c[0])&&c[1]){m[norm(c[0])]=c[1];n++}});
- if(!n){toast('取り込める行がありません(番号,氏名の形式か確認)');return}
- master=m;LS.set('master',m);renderMaster();toast(n+' 名を取り込みました');e.target.value=''};
-function renderMaster(){$('#mcnt').textContent='登録済み: '+Object.keys(master).length+' 名'}
+ a.download=name;document.body.appendChild(a);a.click();a.remove();
+ const cnt=recs.length;
+ setTimeout(()=>{
+  if(confirm(name+' を書き出しました。\n保存できたことを確認してから、登録データ('+cnt+'件)を削除しますか?')){
+   recs=[];LS.set('recs',recs);renderList();toast('登録データを削除しました')}
+ },300)};
 
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
  view=b.dataset.v;document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
  ['scan','list','set'].forEach(v=>$('#v-'+v).hidden=v!==view);
  if(view!=='scan')stopCam();else{if(camOn&&emp&&!code)startCam();else if(emp)$('#scan').focus()}
- if(view==='list')renderList();if(view==='set')renderMaster()});
+ if(view==='list')renderList()});
 
-renderTop();renderMaster();
+renderTop();
 const sw=$('#swst');
 if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)){
  navigator.serviceWorker.register('sw.js').catch(()=>{sw.textContent='登録に失敗しました。HTTPSで開き直してください'});
