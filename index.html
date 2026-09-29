@@ -26,16 +26,16 @@ main{flex:1;overflow:auto;padding:14px}
 .disp{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:10px 14px;font-size:40px;font-weight:700;text-align:right;min-height:64px;font-variant-numeric:tabular-nums;letter-spacing:.04em}
 .name{min-height:32px;margin:8px 2px;font-size:22px;font-weight:700}
 .name.ng{color:var(--ng)}
-.code{background:var(--card);border:2px dashed var(--line);border-radius:12px;padding:10px 14px;margin:10px 0;font-size:20px;word-break:break-all;min-height:56px}
+.code{background:var(--card);border:2px dashed var(--line);border-radius:12px;padding:8px 14px;margin:6px 0;font-size:20px;word-break:break-all;min-height:56px}
 .code.on{border:2px solid var(--pri);background:#eaf3fb}
-.lbl{font-size:13px;color:var(--sub);margin:12px 2px 4px}
+.lbl{font-size:13px;color:var(--sub);margin:8px 2px 4px}
 #scan{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
 .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
 .pad button{height:54px;font-size:24px;font-weight:700}
 .pad .c{color:var(--ng)}
 .go{width:100%;height:64px;font-size:22px;font-weight:700;background:var(--pri);color:#fff;border:0}
 .go:disabled{background:#9fb3c4}
-.row{display:flex;gap:8px;margin:8px 0}
+.row{display:flex;gap:8px;margin:6px 0}
 .row button{flex:1;padding:12px;font-size:16px}
 #cnt{margin:10px 2px;color:var(--sub);font-size:14px}
 video{width:100%;max-height:34vh;border-radius:10px;background:#000;margin-top:8px}
@@ -79,12 +79,10 @@ nav button.on{color:var(--pri);font-weight:700;box-shadow:inset 0 3px 0 var(--pr
   <button class="go" id="start" disabled>開始</button>
  </div>
  <div id="work" hidden>
-  <div class="lbl">ハンディー端末はそのまま読取できます</div>
   <input id="scan" inputmode="none" autocomplete="off">
   <div class="row"><button id="camBtn">カメラで読み取る</button></div>
   <video id="vid" playsinline muted hidden></video>
   <canvas id="cv" hidden></canvas>
-  <div class="lbl">読み取った内容</div>
   <div class="code" id="codeDisp">未読取</div>
   <div class="lbl">数量</div>
   <div class="disp" id="qtyDisp"></div>
