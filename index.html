@@ -31,7 +31,7 @@ main{flex:1;overflow:auto;padding:14px}
 .lbl{font-size:13px;color:var(--sub);margin:12px 2px 4px}
 #scan{width:100%;font-size:18px;padding:12px;border:2px solid var(--line);border-radius:10px}
 .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
-.pad button{height:64px;font-size:28px;font-weight:700}
+.pad button{height:54px;font-size:24px;font-weight:700}
 .pad .c{color:var(--ng)}
 .go{width:100%;height:64px;font-size:22px;font-weight:700;background:var(--pri);color:#fff;border:0}
 .go:disabled{background:#9fb3c4}
@@ -42,11 +42,13 @@ video{width:100%;max-height:34vh;border-radius:10px;background:#000;margin-top:8
 nav{display:flex;border-top:1px solid var(--line);background:var(--card)}
 nav button{flex:1;border:0;border-radius:0;padding:14px 4px;font-size:16px;background:transparent}
 nav button.on{color:var(--pri);font-weight:700;box-shadow:inset 0 3px 0 var(--pri)}
-table{width:100%;border-collapse:collapse;background:var(--card);font-size:15px}
-th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
-td.q{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
-td button{padding:8px 10px;font-size:14px;margin-left:4px}
-.tbl{overflow-x:auto}
+.rec{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.rec .info{flex:1;min-width:0}
+.rec .info .c1{font-size:15px;word-break:break-all}
+.rec .info .c2{font-size:12px;color:var(--sub)}
+.rec .q{font-size:20px;font-weight:700;min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
+.rec .btns{display:flex;flex-direction:column;gap:6px}
+.rec .btns button{padding:8px 10px;font-size:13px;white-space:nowrap}
 #toast{position:fixed;left:50%;bottom:78px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90%}
 #toast.on{opacity:1}
 [hidden]{display:none!important}
@@ -73,7 +75,7 @@ td button{padding:8px 10px;font-size:14px;margin-left:4px}
  </div>
  <div id="work" hidden>
   <div class="lbl">スキャン(ハンディー端末はそのまま読取)</div>
-  <input id="scan" inputmode="none" autocomplete="off" placeholder="バーコード・QRコード">
+  <input id="scan" inputmode="none" autocomplete="off">
   <div class="row"><button id="camBtn">カメラで読み取る</button></div>
   <video id="vid" playsinline muted hidden></video>
   <canvas id="cv" hidden></canvas>
@@ -89,7 +91,7 @@ td button{padding:8px 10px;font-size:14px;margin-left:4px}
 <section id="v-list" class="wrap" hidden>
  <div class="row"><button id="exp">CSVを書き出す</button><button id="clr">全件削除</button></div>
  <div id="sum" class="lbl"></div>
- <div class="tbl"><table><thead><tr><th>時刻/番号</th><th>読取内容</th><th>数量</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>
+ <div id="tb"></div>
 </section>
 <section id="v-set" class="wrap" hidden>
  <div class="lbl">オフライン起動の状態</div>
@@ -10209,6 +10211,12 @@ let recs=LS.get('recs',[]),emp=LS.get('emp',null);
 let empIn='',qty='',code=null,cam=null,camOn=false,view='scan';
 const pad2=n=>String(n).padStart(2,'0');
 const fmt=t=>{const d=new Date(t);return pad2(d.getMonth()+1)+'/'+pad2(d.getDate())+' '+pad2(d.getHours())+':'+pad2(d.getMinutes())};
+function normalizeCode(raw){
+ const i1=raw.indexOf(',');
+ if(i1===-1)return raw;
+ const i2=raw.indexOf(',',i1+1);
+ if(i2===-1)return raw+',';
+ return raw.slice(0,i2)}
 let tt;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),2200)}
 
 document.querySelectorAll('.pad').forEach(p=>{
@@ -10239,7 +10247,7 @@ $('#start').onclick=()=>{if(!empIn)return;
 $('#chg').onclick=()=>{stopCam();camOn=false;$('#camBtn').textContent='カメラで読み取る';
  emp=null;LS.set('emp',null);code=null;qty='';renderTop()};
 
-function accept(c){code=c.trim();qty='';$('#scan').value='';$('#scan').blur();
+function accept(c){code=normalizeCode(c.trim());qty='';$('#scan').value='';$('#scan').blur();
  if(navigator.vibrate)navigator.vibrate(60);if(cam)stopCam();renderWork()}
 $('#scan').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const v=e.target.value.trim();if(v)accept(v)}});
 $('#reg').onclick=register;
@@ -10277,25 +10285,30 @@ $('#camBtn').onclick=()=>{camOn=!camOn;$('#camBtn').textContent=camOn?'カメラ
 function renderList(){
  const tb=$('#tb');tb.innerHTML='';
  recs.map((r,i)=>[r,i]).reverse().forEach(([r,i])=>{
-  const tr=document.createElement('tr');
-  tr.innerHTML='<td></td><td></td><td class="q"></td><td></td>';
-  tr.children[0].textContent=fmt(r.t)+' '+r.e;tr.children[1].textContent=r.c;tr.children[2].textContent=r.q;
-  const e=document.createElement('button');e.textContent='修正';e.onclick=()=>{
+  const row=document.createElement('div');row.className='rec';
+  const info=document.createElement('div');info.className='info';
+  const c1=document.createElement('div');c1.className='c1';c1.textContent=r.c;
+  const c2=document.createElement('div');c2.className='c2';c2.textContent=fmt(r.t)+'  担当: '+r.e;
+  info.append(c1,c2);
+  const q=document.createElement('div');q.className='q';q.textContent=r.q;
+  const btns=document.createElement('div');btns.className='btns';
+  const e=document.createElement('button');e.textContent='数量修正';e.onclick=()=>{
    const v=prompt('数量を入力',r.q);if(v===null)return;
    if(!/^\d{1,6}$/.test(v.trim())){toast('数字だけで入力してください');return}
    r.q=+v;LS.set('recs',recs);renderList()};
   const d=document.createElement('button');d.textContent='削除';d.onclick=()=>{
    if(confirm(r.c+' × '+r.q+' を削除しますか?')){recs.splice(i,1);LS.set('recs',recs);renderList()}};
-  tr.children[3].append(e,d);tb.appendChild(tr)});
+  btns.append(e,d);row.append(info,q,btns);tb.appendChild(row)});
  $('#sum').textContent=recs.length?recs.length+' 件':'まだ登録がありません'}
 $('#clr').onclick=()=>{if(recs.length&&confirm('登録済みの '+recs.length+' 件をすべて削除します。CSVは書き出し済みですか?')){recs=[];LS.set('recs',recs);renderList()}};
 $('#exp').onclick=()=>{
  if(!recs.length){toast('書き出すデータがありません');return}
  const q=s=>'"'+String(s).replace(/"/g,'""')+'"';
- const rows=[['日時','担当者番号','読取内容','数量'].map(q).join(',')];
- recs.forEach(r=>{const d=new Date(r.t);
-  const ts=d.getFullYear()+'/'+pad2(d.getMonth()+1)+'/'+pad2(d.getDate())+' '+pad2(d.getHours())+':'+pad2(d.getMinutes())+':'+pad2(d.getSeconds());
-  rows.push([q(ts),q(r.e),q(r.c),r.q].join(','))});
+ const rows=[['担当者番号','コード1','コード2','数量'].map(q).join(',')];
+ recs.forEach(r=>{
+  const i=r.c.indexOf(',');
+  const c1=i===-1?r.c:r.c.slice(0,i),c2=i===-1?'':r.c.slice(i+1).replace(/,$/,'');
+  rows.push([q(r.e),q(c1),q(c2),r.q].join(','))});
  const n=new Date(),name='tanaoroshi_'+n.getFullYear()+pad2(n.getMonth()+1)+pad2(n.getDate())+'_'+pad2(n.getHours())+pad2(n.getMinutes())+'.csv';
  const a=document.createElement('a');
  a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.join('\r\n')],{type:'text/csv'}));
