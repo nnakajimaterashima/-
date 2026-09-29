@@ -10308,7 +10308,7 @@ function renderList(){
   const row=document.createElement('div');row.className='rec';
   const info=document.createElement('div');info.className='info';
   const c1=document.createElement('div');c1.className='c1';c1.textContent=r.c;
-  const c2=document.createElement('div');c2.className='c2';c2.textContent=fmt(r.t)+'  担当: '+r.e;
+  const c2=document.createElement('div');c2.className='c2';c2.textContent='担当: '+r.e;
   info.append(c1,c2);
   const q=document.createElement('div');q.className='q';q.textContent=r.q;
   const btns=document.createElement('div');btns.className='btns';
@@ -10321,14 +10321,16 @@ $('#clr').onclick=()=>{if(recs.length&&confirm('登録済みの '+recs.length+' 
 $('#exp').onclick=()=>{
  if(!recs.length){toast('書き出すデータがありません');return}
  const q=s=>'"'+String(s).replace(/"/g,'""')+'"';
- const rows=[['担当者番号','コード1','コード2','数量'].map(q).join(',')];
+ const rows=[['日時','担当者番号','コード1','コード2','数量'].map(q).join(',')];
  recs.forEach(r=>{
   const i=r.c.indexOf(',');
   const c1=i===-1?r.c:r.c.slice(0,i),c2=i===-1?'':r.c.slice(i+1).replace(/,$/,'');
-  rows.push([q(r.e),q(c1),q(c2),r.q].join(','))});
+  const d=new Date(r.t);
+  const ts=d.getFullYear()+'/'+pad2(d.getMonth()+1)+'/'+pad2(d.getDate())+' '+pad2(d.getHours())+':'+pad2(d.getMinutes())+':'+pad2(d.getSeconds());
+  rows.push([q(ts),q(r.e),q(c1),q(c2),r.q].join(','))});
  const n=new Date(),name='tanaoroshi_'+n.getFullYear()+pad2(n.getMonth()+1)+pad2(n.getDate())+'_'+pad2(n.getHours())+pad2(n.getMinutes())+'.csv';
  const a=document.createElement('a');
- a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.join('\r\n')],{type:'text/csv'}));
+ a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.join('\n')],{type:'text/csv'}));
  a.download=name;document.body.appendChild(a);a.click();a.remove();
  const cnt=recs.length;
  setTimeout(()=>{
